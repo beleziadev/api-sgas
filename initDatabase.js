@@ -2,6 +2,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const Company = require('./src/models/Company');
 const LoginCredential = require('./src/models/LoginCredential');
+const Sector = require('./src/models/Sector');
 
 const initDatabase = async () => {
   try {
@@ -9,7 +10,7 @@ const initDatabase = async () => {
       autoIndex: true,
     });
 
-    await Promise.all([Company.init(), LoginCredential.init()]);
+    await Promise.all([Company.init(), LoginCredential.init(), Sector.init()]);
 
     console.log(`Banco de dados "${connection.connection.name}" pronto para uso.`);
     await mongoose.disconnect();

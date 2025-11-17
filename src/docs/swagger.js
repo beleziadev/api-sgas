@@ -6,7 +6,7 @@ const swaggerDefinition = {
     title: 'API SGAS',
     version: '1.0.0',
     description:
-      'API responsável pelo módulo de empresas e login do SGAS. Mantém o relacionamento entre matriz e filiais.',
+      'API responsável pelos módulos de empresas, setores e login do SGAS. Mantém o relacionamento entre matriz e filiais.',
   },
   servers: [
     {
@@ -105,6 +105,47 @@ const swaggerDefinition = {
           matriz: { type: 'boolean' },
         },
       },
+      Sector: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          technicalManager: { type: 'string' },
+          responsible: { type: 'string' },
+          phone: { type: 'string' },
+          email: { type: 'string' },
+          address: { type: 'string' },
+          sectorType: { type: 'string' },
+          manager: { type: 'string' },
+          description: { type: 'string' },
+          company: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              cnpj: { type: 'string' },
+            },
+          },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      SectorPayload: {
+        type: 'object',
+        required: ['name', 'companyId'],
+        properties: {
+          name: { type: 'string' },
+          technicalManager: { type: 'string' },
+          responsible: { type: 'string' },
+          phone: { type: 'string' },
+          email: { type: 'string', format: 'email' },
+          address: { type: 'string' },
+          sectorType: { type: 'string' },
+          manager: { type: 'string' },
+          description: { type: 'string' },
+          companyId: { type: 'string', description: 'ID da empresa vinculada.' },
+        },
+      },
     },
   },
   paths: {
@@ -190,6 +231,126 @@ const swaggerDefinition = {
               },
             },
           },
+        },
+      },
+    },
+    '/api/companies/{companyId}/sectors': {
+      parameters: [
+        {
+          name: 'companyId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+          description: 'ID da empresa cujos setores serão listados.',
+        },
+      ],
+      get: {
+        summary: 'Lista setores vinculados a uma empresa específica',
+        tags: ['Setores'],
+        responses: {
+          200: {
+            description: 'Lista retornada com sucesso',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/Sector' } },
+              },
+            },
+          },
+          404: { description: 'Empresa informada não encontrada.' },
+        },
+      },
+    },
+    '/api/sectors': {
+      get: {
+        summary: 'Lista os setores cadastrados',
+        tags: ['Setores'],
+        parameters: [
+          {
+            name: 'companyId',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Filtra setores por empresa.',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Lista retornada com sucesso',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/Sector' } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Cria um novo setor vinculado a uma empresa',
+        tags: ['Setores'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/SectorPayload' },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Setor criado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Sector' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/sectors/{sectorId}': {
+      parameters: [
+        {
+          name: 'sectorId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      get: {
+        summary: 'Busca um setor pelo ID',
+        tags: ['Setores'],
+        responses: {
+          200: {
+            description: 'Setor encontrado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Sector' },
+              },
+            },
+          },
+          404: { description: 'Setor não encontrado' },
+        },
+      },
+      put: {
+        summary: 'Atualiza os dados de um setor existente',
+        tags: ['Setores'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/SectorPayload' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Setor atualizado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Sector' },
+              },
+            },
+          },
+          404: { description: 'Setor não encontrado' },
         },
       },
     },

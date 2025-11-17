@@ -4,6 +4,7 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
 const companyRoutes = require('./routes/companyRoutes');
 const authRoutes = require('./routes/authRoutes');
+const sectorRoutes = require('./routes/sectorRoutes');
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/companies', companyRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/sectors', sectorRoutes);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use((err, _req, res, _next) => {
