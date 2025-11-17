@@ -1,0 +1,67 @@
+const mongoose = require('mongoose');
+
+const companySchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    legalName: {
+      type: String,
+      trim: true,
+    },
+    cnpj: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    stateRegistration: {
+      type: String,
+      trim: true,
+    },
+    municipalRegistration: {
+      type: String,
+      trim: true,
+    },
+    activity: {
+      type: String,
+      trim: true,
+    },
+    phones: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    emails: [
+      {
+        type: String,
+        lowercase: true,
+        trim: true,
+      },
+    ],
+    matrixCompany: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Company',
+      default: null,
+    },
+  },
+  { timestamps: true }
+);
+
+companySchema.virtual('isMatrix').get(function isMatrix() {
+  return !this.matrixCompany;
+});
+
+companySchema.set('toJSON', {
+  virtuals: true,
+  versionKey: false,
+  transform: (_doc, ret) => {
+    ret.id = ret._id;
+    delete ret._id;
+  },
+});
+
+module.exports = mongoose.model('Company', companySchema);
