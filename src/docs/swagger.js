@@ -6,7 +6,7 @@ const swaggerDefinition = {
     title: 'API SGAS',
     version: '1.0.0',
     description:
-      'API responsável pelos módulos de empresas, setores e login do SGAS. Mantém o relacionamento entre matriz e filiais.',
+      'API responsável pelos módulos de empresas, setores, avisos e login do SGAS. Mantém o relacionamento entre matriz e filiais.',
   },
   servers: [
     {
@@ -144,6 +144,50 @@ const swaggerDefinition = {
           manager: { type: 'string' },
           description: { type: 'string' },
           companyId: { type: 'string', description: 'ID da empresa vinculada.' },
+        },
+      },
+      Notice: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          message: { type: 'string' },
+          company: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              cnpj: { type: 'string' },
+            },
+          },
+          sector: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+            },
+          },
+          expiresAt: { type: 'string', format: 'date-time', nullable: true },
+          viewed: { type: 'boolean' },
+          importance: { type: 'string' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      NoticePayload: {
+        type: 'object',
+        required: ['message', 'companyId'],
+        properties: {
+          message: { type: 'string' },
+          companyId: { type: 'string', description: 'ID da empresa vinculada.' },
+          sectorId: {
+            type: 'string',
+            nullable: true,
+            description: 'ID do setor caso o aviso seja específico.',
+          },
+          expiresAt: { type: 'string', format: 'date-time', nullable: true },
+          viewed: { type: 'boolean' },
+          importance: { type: 'string' },
         },
       },
     },
@@ -351,6 +395,112 @@ const swaggerDefinition = {
             },
           },
           404: { description: 'Setor não encontrado' },
+        },
+      },
+    },
+    '/api/notices': {
+      get: {
+        summary: 'Lista avisos cadastrados',
+        tags: ['Avisos'],
+        parameters: [
+          {
+            name: 'companyId',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Filtra avisos por empresa.',
+          },
+          {
+            name: 'sectorId',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Filtra avisos por setor.',
+          },
+          {
+            name: 'viewed',
+            in: 'query',
+            schema: { type: 'boolean' },
+            description: 'Quando informado, retorna apenas avisos visualizados/não visualizados.',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Lista retornada com sucesso',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/Notice' } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Cria um novo aviso',
+        tags: ['Avisos'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/NoticePayload' },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Aviso criado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Notice' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/notices/{noticeId}': {
+      parameters: [
+        {
+          name: 'noticeId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      get: {
+        summary: 'Busca um aviso pelo ID',
+        tags: ['Avisos'],
+        responses: {
+          200: {
+            description: 'Aviso encontrado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Notice' },
+              },
+            },
+          },
+          404: { description: 'Aviso não encontrado' },
+        },
+      },
+      put: {
+        summary: 'Atualiza um aviso existente',
+        tags: ['Avisos'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/NoticePayload' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Aviso atualizado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Notice' },
+              },
+            },
+          },
+          404: { description: 'Aviso não encontrado' },
         },
       },
     },
