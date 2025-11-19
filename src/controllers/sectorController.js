@@ -1,6 +1,48 @@
 const Company = require('../models/Company');
 const Sector = require('../models/Sector');
 
+const ACTIVE_STATUS = 1;
+const ACTIVE_STATUS_CLAUSE = { $or: [{ status: ACTIVE_STATUS }, { status: { $exists: false } }] };
+
+const sanitizeStatusValue = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
+
+const resolveStatusFilter = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return ACTIVE_STATUS;
+  }
+  if (value === 'all') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? ACTIVE_STATUS : parsed;
+};
+
+const buildStatusClause = (value) => {
+  const resolved = resolveStatusFilter(value);
+  if (typeof resolved === 'undefined') {
+    return null;
+  }
+  if (resolved === ACTIVE_STATUS) {
+    return ACTIVE_STATUS_CLAUSE;
+  }
+  return { status: resolved };
+};
+
+const applyStatusFilter = (filter, value) => {
+  const clause = buildStatusClause(value);
+  if (!clause) return;
+  if (!filter.$and) {
+    filter.$and = [];
+  }
+  filter.$and.push(clause);
+};
+
 const normalizeSectorPayload = (payload = {}) => {
   const {
     name,
@@ -14,6 +56,7 @@ const normalizeSectorPayload = (payload = {}) => {
     description,
     companyId,
     company,
+    status,
   } = payload;
 
   const normalized = {
@@ -27,6 +70,7 @@ const normalizeSectorPayload = (payload = {}) => {
     manager,
     description,
     company: companyId || company,
+    status: sanitizeStatusValue(status),
   };
 
   return Object.fromEntries(
@@ -40,7 +84,7 @@ const ensureCompanyExists = async (companyId, res) => {
     return null;
   }
 
-  const company = await Company.findById(companyId);
+  const company = await Company.findOne({ _id: companyId, ...ACTIVE_STATUS_CLAUSE });
   if (!company) {
     res.status(404).json({ message: 'Empresa informada não encontrada.' });
     return null;
@@ -74,6 +118,8 @@ exports.listSectors = async (req, res, next) => {
       filter.company = req.query.companyId;
     }
 
+    applyStatusFilter(filter, req.query?.status);
+
     const sectors = await Sector.find(filter)
       .populate('company', 'name cnpj')
       .exec();
@@ -90,7 +136,10 @@ exports.listSectorsByCompany = async (req, res, next) => {
     const company = await ensureCompanyExists(companyId, res);
     if (!company) return;
 
-    const sectors = await Sector.find({ company: companyId })
+    const query = { company: companyId };
+    applyStatusFilter(query, req.query?.status);
+
+    const sectors = await Sector.find(query)
       .populate('company', 'name cnpj')
       .exec();
 

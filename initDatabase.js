@@ -5,6 +5,10 @@ const LoginCredential = require('./src/models/LoginCredential');
 const Sector = require('./src/models/Sector');
 const Notice = require('./src/models/Notice');
 
+const ensureStatusField = async (Model) => {
+  await Model.updateMany({ status: { $exists: false } }, { $set: { status: 1 } });
+};
+
 const initDatabase = async () => {
   try {
     const connection = await mongoose.connect(process.env.MONGODB_URI, {
@@ -12,6 +16,13 @@ const initDatabase = async () => {
     });
 
     await Promise.all([Company.init(), LoginCredential.init(), Sector.init(), Notice.init()]);
+
+    await Promise.all([
+      ensureStatusField(Company),
+      ensureStatusField(Sector),
+      ensureStatusField(Notice),
+      ensureStatusField(LoginCredential),
+    ]);
 
     console.log(`Banco de dados "${connection.connection.name}" pronto para uso.`);
     await mongoose.disconnect();

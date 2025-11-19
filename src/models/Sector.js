@@ -45,8 +45,13 @@ const sectorSchema = new mongoose.Schema(
       ref: 'Company',
       required: true,
     },
+    status: {
+      type: Number,
+      enum: [0, 1],
+      default: 1,
+    },
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
 sectorSchema.set('toJSON', {

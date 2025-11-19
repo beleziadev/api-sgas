@@ -3,6 +3,40 @@ const Company = require('../models/Company');
 const LoginCredential = require('../models/LoginCredential');
 
 const SALT_ROUNDS = 10;
+const ACTIVE_STATUS = 1;
+const ACTIVE_STATUS_CLAUSE = { $or: [{ status: ACTIVE_STATUS }, { status: { $exists: false } }] };
+
+const resolveStatusFilter = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return ACTIVE_STATUS;
+  }
+  if (value === 'all') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? ACTIVE_STATUS : parsed;
+};
+
+const buildStatusClause = (value) => {
+  const resolved = resolveStatusFilter(value);
+  if (typeof resolved === 'undefined') {
+    return null;
+  }
+  if (resolved === ACTIVE_STATUS) {
+    return ACTIVE_STATUS_CLAUSE;
+  }
+  return { status: resolved };
+};
+
+const applyStatusFilter = (filter, value) => {
+  const clause = buildStatusClause(value);
+  if (!clause) return;
+
+  if (!filter.$and) {
+    filter.$and = [];
+  }
+  filter.$and.push(clause);
+};
 
 const normalizeBranch = (companyId, branchId) => {
   if (!branchId || branchId === companyId) {
@@ -24,8 +58,10 @@ exports.registerCredential = async (req, res, next) => {
     const branchToUse = normalizeBranch(companyId, branchId);
 
     const [company, branch] = await Promise.all([
-      Company.findById(companyId),
-      branchToUse ? Company.findById(branchToUse) : Promise.resolve(null),
+      Company.findOne({ _id: companyId, ...ACTIVE_STATUS_CLAUSE }),
+      branchToUse
+        ? Company.findOne({ _id: branchToUse, ...ACTIVE_STATUS_CLAUSE })
+        : Promise.resolve(null),
     ]);
 
     if (!company) {
@@ -43,6 +79,7 @@ exports.registerCredential = async (req, res, next) => {
       passwordHash,
       company: companyId,
       branch: branchToUse,
+      status: ACTIVE_STATUS,
     });
 
     return res.status(201).json(credential);
@@ -68,13 +105,15 @@ exports.listCredentials = async (req, res, next) => {
       filter.branch = normalizeBranch(req.query.companyId, req.query.branchId);
     }
 
+    applyStatusFilter(filter, req.query?.status);
+
     const logins = await LoginCredential.find(filter)
       .populate('company', 'name cnpj')
       .populate('branch', 'name cnpj')
       .lean();
 
     const sanitizedLogins = logins.map((login) => {
-      const { passwordHash, ...rest } = login;
+      const { passwordHash, __v, ...rest } = login;
       return rest;
     });
 
@@ -103,9 +142,23 @@ exports.login = async (req, res, next) => {
       email,
       company: companyId,
       branch: branchToUse,
+      ...ACTIVE_STATUS_CLAUSE,
     });
 
     if (!credential) {
+      return res
+        .status(401)
+        .json({ message: 'Combinação de empresa/filial e credenciais inválida.' });
+    }
+
+    const [company, branch] = await Promise.all([
+      Company.findOne({ _id: companyId, ...ACTIVE_STATUS_CLAUSE }),
+      branchToUse
+        ? Company.findOne({ _id: branchToUse, ...ACTIVE_STATUS_CLAUSE })
+        : Promise.resolve(null),
+    ]);
+
+    if (!company || (branchToUse && !branch)) {
       return res
         .status(401)
         .json({ message: 'Combinação de empresa/filial e credenciais inválida.' });

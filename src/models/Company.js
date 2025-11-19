@@ -47,8 +47,13 @@ const companySchema = new mongoose.Schema(
       ref: 'Company',
       default: null,
     },
+    status: {
+      type: Number,
+      enum: [0, 1],
+      default: 1,
+    },
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
 companySchema.virtual('isMatrix').get(function isMatrix() {

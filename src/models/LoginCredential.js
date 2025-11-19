@@ -22,11 +22,16 @@ const loginCredentialSchema = new mongoose.Schema(
       ref: 'Company',
       default: null,
     },
+    status: {
+      type: Number,
+      enum: [0, 1],
+      default: 1,
+    },
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
-loginCredentialSchema.index({ email: 1, company: 1, branch: 1 }, { unique: true });
+loginCredentialSchema.index({ email: 1, company: 1, branch: 1, status: 1 }, { unique: true });
 
 loginCredentialSchema.set('toJSON', {
   versionKey: false,

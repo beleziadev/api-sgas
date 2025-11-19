@@ -36,6 +36,11 @@ const swaggerDefinition = {
           emails: { type: 'array', items: { type: 'string' } },
           matrixCompany: { type: 'string', nullable: true },
           isMatrix: { type: 'boolean' },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: '0 = inativo, 1 = ativo.',
+          },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
@@ -56,6 +61,11 @@ const swaggerDefinition = {
             type: 'string',
             description: 'ID da matriz. Caso vazio, a empresa é matriz ou não possui filiais.',
           },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: 'Define o status (1 = ativo, 0 = inativo).',
+          },
         },
       },
       LoginCredential: {
@@ -65,6 +75,11 @@ const swaggerDefinition = {
           email: { type: 'string', format: 'email' },
           company: { type: 'string' },
           branch: { type: 'string', nullable: true },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: '0 = inativo, 1 = ativo.',
+          },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
@@ -80,6 +95,11 @@ const swaggerDefinition = {
             type: 'string',
             nullable: true,
             description: 'ID da filial. Quando vazio ou igual ao ID da empresa, assume-se a matriz.',
+          },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: 'Permite criar um login já inativo (padrão: 1).',
           },
         },
       },
@@ -126,6 +146,11 @@ const swaggerDefinition = {
               cnpj: { type: 'string' },
             },
           },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: '0 = inativo, 1 = ativo.',
+          },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
@@ -144,6 +169,11 @@ const swaggerDefinition = {
           manager: { type: 'string' },
           description: { type: 'string' },
           companyId: { type: 'string', description: 'ID da empresa vinculada.' },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: 'Define o status do setor (1 = ativo, 0 = inativo).',
+          },
         },
       },
       Notice: {
@@ -170,6 +200,11 @@ const swaggerDefinition = {
           expiresAt: { type: 'string', format: 'date-time', nullable: true },
           viewed: { type: 'boolean' },
           importance: { type: 'string' },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: '0 = inativo, 1 = ativo.',
+          },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
@@ -188,6 +223,11 @@ const swaggerDefinition = {
           expiresAt: { type: 'string', format: 'date-time', nullable: true },
           viewed: { type: 'boolean' },
           importance: { type: 'string' },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: 'Define o status do aviso (1 = ativo, 0 = inativo).',
+          },
         },
       },
     },
@@ -197,6 +237,14 @@ const swaggerDefinition = {
       get: {
         summary: 'Lista todas as empresas',
         tags: ['Empresas'],
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: ['0', '1', 'all'] },
+            description: 'Filtra pelo status (1 = ativos, 0 = inativos, all = todos). Padrão: 1.',
+          },
+        ],
         responses: {
           200: {
             description: 'Lista retornada com sucesso',
@@ -291,6 +339,14 @@ const swaggerDefinition = {
       get: {
         summary: 'Lista setores vinculados a uma empresa específica',
         tags: ['Setores'],
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: ['0', '1', 'all'] },
+            description: 'Filtra pelo status (padrão: 1).',
+          },
+        ],
         responses: {
           200: {
             description: 'Lista retornada com sucesso',
@@ -314,6 +370,12 @@ const swaggerDefinition = {
             in: 'query',
             schema: { type: 'string' },
             description: 'Filtra setores por empresa.',
+          },
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: ['0', '1', 'all'] },
+            description: 'Filtra pelo status (padrão: 1).',
           },
         ],
         responses: {
@@ -421,6 +483,12 @@ const swaggerDefinition = {
             schema: { type: 'boolean' },
             description: 'Quando informado, retorna apenas avisos visualizados/não visualizados.',
           },
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: ['0', '1', 'all'] },
+            description: 'Filtra pelo status (padrão: 1).',
+          },
         ],
         responses: {
           200: {
@@ -518,6 +586,12 @@ const swaggerDefinition = {
             name: 'branchId',
             in: 'query',
             schema: { type: 'string' },
+          },
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: ['0', '1', 'all'] },
+            description: 'Filtra pelo status (padrão: 1).',
           },
         ],
         responses: {

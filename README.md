@@ -2,6 +2,8 @@
 
 Backend simples em Node.js + MongoDB que mantém os módulos de empresas, setores, avisos e login descritos no enunciado.
 
+Todas as entidades possuem o campo `status` (1 = ativo, 0 = inativo) para permitir exclusão lógica.
+
 ## Configuração
 
 1. `cd api-sgas`
@@ -33,3 +35,7 @@ Backend simples em Node.js + MongoDB que mantém os módulos de empresas, setore
 - `GET /api/notices` lista avisos (pode filtrar por `companyId`, `sectorId` e `viewed`).
 - `GET /api/notices/:id` obtém detalhes de um aviso.
 - `PUT /api/notices/:id` atualiza aviso.
+
+## Exclusão lógica
+
+Listagens retornam registros ativos por padrão. Informe `?status=0` para consultar inativos ou `?status=all` para obter todos.

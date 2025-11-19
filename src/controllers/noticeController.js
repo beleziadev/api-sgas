@@ -2,6 +2,49 @@ const Company = require('../models/Company');
 const Sector = require('../models/Sector');
 const Notice = require('../models/Notice');
 
+const ACTIVE_STATUS = 1;
+const ACTIVE_STATUS_CLAUSE = { $or: [{ status: ACTIVE_STATUS }, { status: { $exists: false } }] };
+
+const sanitizeStatusValue = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
+
+const resolveStatusFilter = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return ACTIVE_STATUS;
+  }
+  if (value === 'all') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? ACTIVE_STATUS : parsed;
+};
+
+const buildStatusClause = (value) => {
+  const resolved = resolveStatusFilter(value);
+  if (typeof resolved === 'undefined') {
+    return null;
+  }
+  if (resolved === ACTIVE_STATUS) {
+    return ACTIVE_STATUS_CLAUSE;
+  }
+  return { status: resolved };
+};
+
+const applyStatusFilter = (filter, value) => {
+  const clause = buildStatusClause(value);
+  if (!clause) return;
+
+  if (!filter.$and) {
+    filter.$and = [];
+  }
+  filter.$and.push(clause);
+};
+
 const normalizeNoticePayload = (payload = {}) => {
   const {
     message,
@@ -12,6 +55,7 @@ const normalizeNoticePayload = (payload = {}) => {
     expiresAt,
     viewed,
     importance,
+    status,
   } = payload;
 
   const normalized = {
@@ -21,6 +65,7 @@ const normalizeNoticePayload = (payload = {}) => {
     expiresAt,
     viewed,
     importance,
+    status: sanitizeStatusValue(status),
   };
 
   return Object.fromEntries(
@@ -34,7 +79,7 @@ const ensureCompanyExists = async (companyId, res) => {
     return null;
   }
 
-  const companyDoc = await Company.findById(companyId);
+  const companyDoc = await Company.findOne({ _id: companyId, ...ACTIVE_STATUS_CLAUSE });
   if (!companyDoc) {
     res.status(404).json({ message: 'Empresa informada não encontrada.' });
     return null;
@@ -48,7 +93,7 @@ const ensureSectorIsValid = async (sectorId, companyId, res) => {
     return null;
   }
 
-  const sectorDoc = await Sector.findById(sectorId);
+  const sectorDoc = await Sector.findOne({ _id: sectorId, ...ACTIVE_STATUS_CLAUSE });
   if (!sectorDoc) {
     res.status(404).json({ message: 'Setor informado não encontrado.' });
     return null;
@@ -102,6 +147,8 @@ exports.listNotices = async (req, res, next) => {
     if (req.query.viewed !== undefined) {
       filter.viewed = req.query.viewed === 'true';
     }
+
+    applyStatusFilter(filter, req.query?.status);
 
     const notices = await Notice.find(filter)
       .populate('company', 'name cnpj')
