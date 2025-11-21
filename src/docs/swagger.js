@@ -72,6 +72,7 @@ const swaggerDefinition = {
         type: 'object',
         properties: {
           id: { type: 'string' },
+          name: { type: 'string' },
           email: { type: 'string', format: 'email' },
           company: { type: 'string' },
           branch: { type: 'string', nullable: true },
@@ -86,8 +87,9 @@ const swaggerDefinition = {
       },
       LoginCredentialPayload: {
         type: 'object',
-        required: ['email', 'password', 'companyId'],
+        required: ['name', 'email', 'password', 'companyId'],
         properties: {
+          name: { type: 'string' },
           email: { type: 'string', format: 'email' },
           password: { type: 'string', format: 'password' },
           companyId: { type: 'string' },

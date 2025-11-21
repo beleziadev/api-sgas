@@ -47,12 +47,12 @@ const normalizeBranch = (companyId, branchId) => {
 
 exports.registerCredential = async (req, res, next) => {
   try {
-    const { email, password, companyId, branchId } = req.body;
+    const { name, email, password, companyId, branchId } = req.body;
 
-    if (!email || !password || !companyId) {
+    if (!name || !email || !password || !companyId) {
       return res
         .status(400)
-        .json({ message: 'Email, senha e o ID da empresa são obrigatórios.' });
+        .json({ message: 'Nome, email, senha e o ID da empresa são obrigatórios.' });
     }
 
     const branchToUse = normalizeBranch(companyId, branchId);
@@ -75,6 +75,7 @@ exports.registerCredential = async (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     const credential = await LoginCredential.create({
+      name,
       email,
       passwordHash,
       company: companyId,

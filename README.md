@@ -23,7 +23,7 @@ Todas as entidades possuem o campo `status` (1 = ativo, 0 = inativo) para permit
 - `GET /api/companies` lista empresas.
 - `GET /api/companies/:id` obtém detalhes.
 - `PUT /api/companies/:id` atualiza.
-- `POST /api/auth/logins` relaciona um login (email/senha) com empresa/filial.
+- `POST /api/auth/logins` relaciona um login (nome/email/senha) com empresa/filial.
 - `GET /api/auth/logins` lista logins cadastrados.
 - `POST /api/auth/login/:companyId` executa login. Informe `branchId` no corpo; se ausente ou igual ao `companyId` o sistema assume a matriz.
 - `POST /api/sectors` cria um setor vinculado a uma empresa.
