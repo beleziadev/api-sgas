@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const Company = require('./src/models/Company');
-const LoginCredential = require('./src/models/LoginCredential');
+const Pessoa = require('./src/models/Pessoa');
 const Sector = require('./src/models/Sector');
 const Notice = require('./src/models/Notice');
 
@@ -9,11 +9,24 @@ const ensureStatusField = async (Model) => {
   await Model.updateMany({ status: { $exists: false } }, { $set: { status: 1 } });
 };
 
-const ensureCredentialName = async () => {
-  await LoginCredential.updateMany(
-    { name: { $exists: false } },
-    { $set: { name: 'Usuário' } }
-  );
+const ensurePessoaNome = async () => {
+  const pessoasSemNome = await Pessoa.find({ nome: { $exists: false } }, { name: 1 }).lean();
+
+  if (pessoasSemNome.length) {
+    await Promise.all(
+      pessoasSemNome.map((pessoa) =>
+        Pessoa.updateOne(
+          { _id: pessoa._id },
+          {
+            $set: { nome: pessoa.name || 'Usuário' },
+            $unset: { name: '' },
+          }
+        )
+      )
+    );
+  }
+
+  await Pessoa.updateMany({ name: { $exists: true } }, { $unset: { name: '' } });
 };
 
 const initDatabase = async () => {
@@ -22,14 +35,14 @@ const initDatabase = async () => {
       autoIndex: true,
     });
 
-    await Promise.all([Company.init(), LoginCredential.init(), Sector.init(), Notice.init()]);
+    await Promise.all([Company.init(), Pessoa.init(), Sector.init(), Notice.init()]);
 
     await Promise.all([
       ensureStatusField(Company),
       ensureStatusField(Sector),
       ensureStatusField(Notice),
-      ensureStatusField(LoginCredential),
-      ensureCredentialName(),
+      ensureStatusField(Pessoa),
+      ensurePessoaNome(),
     ]);
 
     console.log(`Banco de dados "${connection.connection.name}" pronto para uso.`);

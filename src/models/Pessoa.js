@@ -1,11 +1,21 @@
 const mongoose = require('mongoose');
 
-const loginCredentialSchema = new mongoose.Schema(
+const pessoaSchema = new mongoose.Schema(
   {
-    name: {
+    nome: {
       type: String,
       required: true,
       trim: true,
+    },
+    cargo: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    telefone: {
+      type: String,
+      trim: true,
+      default: null,
     },
     email: {
       type: String,
@@ -36,9 +46,9 @@ const loginCredentialSchema = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
-loginCredentialSchema.index({ email: 1, company: 1, branch: 1, status: 1 }, { unique: true });
+pessoaSchema.index({ email: 1, company: 1, branch: 1, status: 1 }, { unique: true });
 
-loginCredentialSchema.set('toJSON', {
+pessoaSchema.set('toJSON', {
   versionKey: false,
   transform: (_doc, ret) => {
     ret.id = ret._id;
@@ -47,4 +57,4 @@ loginCredentialSchema.set('toJSON', {
   },
 });
 
-module.exports = mongoose.model('LoginCredential', loginCredentialSchema);
+module.exports = mongoose.model('Pessoa', pessoaSchema);

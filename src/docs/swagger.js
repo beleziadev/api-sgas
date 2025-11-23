@@ -6,7 +6,7 @@ const swaggerDefinition = {
     title: 'API SGAS',
     version: '1.0.0',
     description:
-      'API responsável pelos módulos de empresas, setores, avisos e login do SGAS. Mantém o relacionamento entre matriz e filiais.',
+      'API responsável pelos módulos de empresas, setores, avisos e pessoas do SGAS. Mantém o relacionamento entre matriz e filiais.',
   },
   servers: [
     {
@@ -68,11 +68,13 @@ const swaggerDefinition = {
           },
         },
       },
-      LoginCredential: {
+      Pessoa: {
         type: 'object',
         properties: {
           id: { type: 'string' },
-          name: { type: 'string' },
+          nome: { type: 'string' },
+          cargo: { type: 'string', nullable: true },
+          telefone: { type: 'string', nullable: true },
           email: { type: 'string', format: 'email' },
           company: { type: 'string' },
           branch: { type: 'string', nullable: true },
@@ -85,11 +87,13 @@ const swaggerDefinition = {
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
-      LoginCredentialPayload: {
+      PessoaPayload: {
         type: 'object',
-        required: ['name', 'email', 'password', 'companyId'],
+        required: ['nome', 'email', 'password', 'companyId'],
         properties: {
-          name: { type: 'string' },
+          nome: { type: 'string' },
+          cargo: { type: 'string', nullable: true },
+          telefone: { type: 'string', nullable: true },
           email: { type: 'string', format: 'email' },
           password: { type: 'string', format: 'password' },
           companyId: { type: 'string' },
@@ -101,7 +105,7 @@ const swaggerDefinition = {
           status: {
             type: 'integer',
             enum: [0, 1],
-            description: 'Permite criar um login já inativo (padrão: 1).',
+            description: 'Permite criar uma pessoa já inativa (padrão: 1).',
           },
         },
       },
@@ -574,10 +578,10 @@ const swaggerDefinition = {
         },
       },
     },
-    '/api/auth/logins': {
+    '/api/auth/pessoas': {
       get: {
-        summary: 'Lista os logins cadastrados',
-        tags: ['Login'],
+        summary: 'Lista as pessoas cadastradas',
+        tags: ['Pessoas'],
         parameters: [
           {
             name: 'companyId',
@@ -604,7 +608,7 @@ const swaggerDefinition = {
                 schema: {
                   type: 'array',
                   items: {
-                    $ref: '#/components/schemas/LoginCredential',
+                    $ref: '#/components/schemas/Pessoa',
                   },
                 },
               },
@@ -613,32 +617,57 @@ const swaggerDefinition = {
         },
       },
       post: {
-        summary: 'Relaciona um login a uma empresa/filial',
-        tags: ['Login'],
+        summary: 'Relaciona uma pessoa a uma empresa/filial',
+        tags: ['Pessoas'],
         requestBody: {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/LoginCredentialPayload' },
+              schema: { $ref: '#/components/schemas/PessoaPayload' },
             },
           },
         },
         responses: {
           201: {
-            description: 'Login cadastrado',
+            description: 'Pessoa cadastrada',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/LoginCredential' },
+                schema: { $ref: '#/components/schemas/Pessoa' },
               },
             },
           },
         },
       },
     },
+    '/api/auth/pessoa/{id}': {
+      get: {
+        summary: 'Busca uma pessoa pelo ID',
+        tags: ['Pessoas'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Pessoa encontrada',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Pessoa' },
+              },
+            },
+          },
+          404: { description: 'Pessoa não encontrada' },
+        },
+      },
+    },
     '/api/auth/login/{companyId}': {
       post: {
         summary: 'Efetua o login informando empresa e filial',
-        tags: ['Login'],
+        tags: ['Pessoas'],
         parameters: [
           {
             name: 'companyId',

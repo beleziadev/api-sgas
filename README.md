@@ -1,6 +1,6 @@
 # API SGAS
 
-Backend simples em Node.js + MongoDB que mantém os módulos de empresas, setores, avisos e login descritos no enunciado.
+Backend simples em Node.js + MongoDB que mantém os módulos de empresas, setores, avisos e pessoas descritos no enunciado.
 
 Todas as entidades possuem o campo `status` (1 = ativo, 0 = inativo) para permitir exclusão lógica.
 
@@ -23,8 +23,8 @@ Todas as entidades possuem o campo `status` (1 = ativo, 0 = inativo) para permit
 - `GET /api/companies` lista empresas.
 - `GET /api/companies/:id` obtém detalhes.
 - `PUT /api/companies/:id` atualiza.
-- `POST /api/auth/logins` relaciona um login (nome/email/senha) com empresa/filial.
-- `GET /api/auth/logins` lista logins cadastrados.
+- `POST /api/auth/pessoas` relaciona uma pessoa (nome/email/senha/cargo/telefone) com empresa/filial.
+- `GET /api/auth/pessoas` lista pessoas cadastradas.
 - `POST /api/auth/login/:companyId` executa login. Informe `branchId` no corpo; se ausente ou igual ao `companyId` o sistema assume a matriz.
 - `POST /api/sectors` cria um setor vinculado a uma empresa.
 - `GET /api/sectors` lista setores (pode filtrar por `companyId`).

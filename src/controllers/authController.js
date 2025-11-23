@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const Company = require('../models/Company');
-const LoginCredential = require('../models/LoginCredential');
+const Pessoa = require('../models/Pessoa');
 
 const SALT_ROUNDS = 10;
 const ACTIVE_STATUS = 1;
@@ -45,11 +45,11 @@ const normalizeBranch = (companyId, branchId) => {
   return branchId;
 };
 
-exports.registerCredential = async (req, res, next) => {
+exports.createPessoa = async (req, res, next) => {
   try {
-    const { name, email, password, companyId, branchId } = req.body;
+    const { nome, cargo, telefone, email, password, companyId, branchId } = req.body;
 
-    if (!name || !email || !password || !companyId) {
+    if (!nome || !email || !password || !companyId) {
       return res
         .status(400)
         .json({ message: 'Nome, email, senha e o ID da empresa são obrigatórios.' });
@@ -74,8 +74,10 @@ exports.registerCredential = async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    const credential = await LoginCredential.create({
-      name,
+    const pessoa = await Pessoa.create({
+      nome,
+      cargo: cargo || null,
+      telefone: telefone || null,
       email,
       passwordHash,
       company: companyId,
@@ -83,18 +85,18 @@ exports.registerCredential = async (req, res, next) => {
       status: ACTIVE_STATUS,
     });
 
-    return res.status(201).json(credential);
+    return res.status(201).json(pessoa);
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({
-        message: 'Já existe um login cadastrado para esse email/empresa/filial.',
+        message: 'Já existe uma pessoa cadastrada para esse email/empresa/filial.',
       });
     }
     return next(error);
   }
 };
 
-exports.listCredentials = async (req, res, next) => {
+exports.listPessoas = async (req, res, next) => {
   try {
     const filter = {};
 
@@ -108,21 +110,50 @@ exports.listCredentials = async (req, res, next) => {
 
     applyStatusFilter(filter, req.query?.status);
 
-    const logins = await LoginCredential.find(filter)
+    const pessoas = await Pessoa.find(filter)
       .populate('company', 'name cnpj')
       .populate('branch', 'name cnpj')
       .lean();
 
-    const sanitizedLogins = logins.map((login) => {
-      const { passwordHash, __v, ...rest } = login;
+    const sanitized = pessoas.map((pessoa) => {
+      const { passwordHash, __v, ...rest } = pessoa;
       return rest;
     });
 
-    return res.json(sanitizedLogins);
+    return res.json(sanitized);
   } catch (error) {
     return next(error);
   }
 };
+
+exports.pessoa = async (req, res, next) => {
+
+  try {
+
+    if (!req.params.id) {
+      return res
+        .status(400)
+        .json({ message: 'ID da pessoa não identificados.' });
+    }
+
+    const pessoa = await Pessoa.findOne({
+      _id: req.params.id,
+      ...ACTIVE_STATUS_CLAUSE,
+    })
+      .populate('company', 'name cnpj')
+      .populate('branch', 'name cnpj')
+      .lean({ virtuals: true });
+
+    if (!pessoa) {
+      return res.status(404).json({ message: 'Pessoa não encontrada' });
+    }
+
+    const { passwordHash, __v, ...sanitizedPessoa } = pessoa;
+    return res.json(sanitizedPessoa);
+  } catch (error) {
+    next(error)
+  }
+}
 
 exports.login = async (req, res, next) => {
   try {
@@ -139,14 +170,14 @@ exports.login = async (req, res, next) => {
 
     const branchToUse = normalizeBranch(companyId, branchId);
 
-    const credential = await LoginCredential.findOne({
+    const pessoa = await Pessoa.findOne({
       email,
       company: companyId,
       branch: branchToUse,
       ...ACTIVE_STATUS_CLAUSE,
     });
 
-    if (!credential) {
+    if (!pessoa) {
       return res
         .status(401)
         .json({ message: 'Combinação de empresa/filial e credenciais inválida.' });
@@ -165,12 +196,10 @@ exports.login = async (req, res, next) => {
         .json({ message: 'Combinação de empresa/filial e credenciais inválida.' });
     }
 
-    const isValidPassword = await bcrypt.compare(password, credential.passwordHash);
+    const isValidPassword = await bcrypt.compare(password, pessoa.passwordHash);
 
     if (!isValidPassword) {
-      return res
-        .status(401)
-        .json({ message: 'Verifique os dados informado!' });
+      return res.status(401).json({ message: 'Verifique os dados informado!' });
     }
 
     const isMatrix = !branchToUse;
