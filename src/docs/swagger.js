@@ -182,6 +182,51 @@ const swaggerDefinition = {
           },
         },
       },
+      Address: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          street: { type: 'string' },
+          number: { type: 'string' },
+          complement: { type: 'string', nullable: true },
+          city: { type: 'string' },
+          state: { type: 'string' },
+          district: { type: 'string' },
+          company: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              cnpj: { type: 'string' },
+            },
+          },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: '0 = inativo, 1 = ativo.',
+          },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      AddressPayload: {
+        type: 'object',
+        required: ['street', 'number', 'city', 'state', 'district', 'companyId'],
+        properties: {
+          street: { type: 'string' },
+          number: { type: 'string' },
+          complement: { type: 'string', nullable: true },
+          city: { type: 'string' },
+          state: { type: 'string' },
+          district: { type: 'string' },
+          companyId: { type: 'string', description: 'ID da empresa vinculada.' },
+          status: {
+            type: 'integer',
+            enum: [0, 1],
+            description: 'Define o status (1 = ativo, 0 = inativo).',
+          },
+        },
+      },
       Notice: {
         type: 'object',
         properties: {
@@ -463,6 +508,106 @@ const swaggerDefinition = {
             },
           },
           404: { description: 'Setor não encontrado' },
+        },
+      },
+    },
+    '/api/addresses': {
+      get: {
+        summary: 'Lista endereços cadastrados',
+        tags: ['Endereços'],
+        parameters: [
+          {
+            name: 'companyId',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Filtra endereços por empresa.',
+          },
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: ['0', '1', 'all'] },
+            description: 'Filtra pelo status (padrão: 1).',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Lista retornada com sucesso',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/Address' } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Cria um novo endereço vinculado a uma empresa',
+        tags: ['Endereços'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AddressPayload' },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Endereço criado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Address' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/addresses/{addressId}': {
+      parameters: [
+        {
+          name: 'addressId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      get: {
+        summary: 'Busca um endereço pelo ID',
+        tags: ['Endereços'],
+        responses: {
+          200: {
+            description: 'Endereço encontrado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Address' },
+              },
+            },
+          },
+          404: { description: 'Endereço não encontrado' },
+        },
+      },
+      put: {
+        summary: 'Atualiza os dados de um endereço',
+        tags: ['Endereços'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AddressPayload' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Endereço atualizado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Address' },
+              },
+            },
+          },
+          404: { description: 'Endereço não encontrado' },
         },
       },
     },
