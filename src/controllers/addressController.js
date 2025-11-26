@@ -51,11 +51,13 @@ const ensureCompanyExists = async (companyId, res) => {
 };
 
 const normalizePayload = (payload = {}) => {
-  const { street, number, complement, city, state, district, companyId, company, status } = payload;
+  const { street, number, cep, complement, city, state, district, companyId, company, status } =
+    payload;
 
   const normalized = {
     street,
     number,
+    cep,
     complement,
     city,
     state,
@@ -71,10 +73,17 @@ exports.createAddress = async (req, res, next) => {
   try {
     const payload = normalizePayload(req.body);
 
-    if (!payload.street || !payload.number || !payload.city || !payload.state || !payload.district) {
+    if (
+      !payload.street ||
+      !payload.number ||
+      !payload.cep ||
+      !payload.city ||
+      !payload.state ||
+      !payload.district
+    ) {
       return res
         .status(400)
-        .json({ message: 'Rua, número, cidade, estado e bairro são obrigatórios.' });
+        .json({ message: 'Rua, número, CEP, cidade, estado e bairro são obrigatórios.' });
     }
 
     const company = await ensureCompanyExists(payload.company, res);

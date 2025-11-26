@@ -34,7 +34,14 @@ const swaggerDefinition = {
           activity: { type: 'string' },
           phones: { type: 'array', items: { type: 'string' } },
           emails: { type: 'array', items: { type: 'string' } },
-          matrixCompany: { type: 'string', nullable: true },
+          matrixCompany: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string', description: 'ID da empresa matriz.' },
+              name: { type: 'string', description: 'Nome da empresa matriz.' },
+            },
+          },
           isMatrix: { type: 'boolean' },
           status: {
             type: 'integer',
@@ -58,8 +65,13 @@ const swaggerDefinition = {
           phones: { type: 'array', items: { type: 'string' } },
           emails: { type: 'array', items: { type: 'string' } },
           matrixCompany: {
-            type: 'string',
-            description: 'ID da matriz. Caso vazio, a empresa é matriz ou não possui filiais.',
+            type: 'object',
+            nullable: true,
+            description: 'Objeto de referência para a matriz. Caso vazio, a empresa é matriz.',
+            properties: {
+              id: { type: 'string', description: 'ID da empresa matriz.' },
+              name: { type: 'string', description: 'Nome da empresa matriz.' },
+            },
           },
           status: {
             type: 'integer',
@@ -188,6 +200,7 @@ const swaggerDefinition = {
           id: { type: 'string' },
           street: { type: 'string' },
           number: { type: 'string' },
+          cep: { type: 'string' },
           complement: { type: 'string', nullable: true },
           city: { type: 'string' },
           state: { type: 'string' },
@@ -211,10 +224,11 @@ const swaggerDefinition = {
       },
       AddressPayload: {
         type: 'object',
-        required: ['street', 'number', 'city', 'state', 'district', 'companyId'],
+        required: ['street', 'number', 'cep', 'city', 'state', 'district', 'companyId'],
         properties: {
           street: { type: 'string' },
           number: { type: 'string' },
+          cep: { type: 'string', description: 'CEP do endereço.' },
           complement: { type: 'string', nullable: true },
           city: { type: 'string' },
           state: { type: 'string' },
@@ -294,6 +308,19 @@ const swaggerDefinition = {
             in: 'query',
             schema: { type: 'string', enum: ['0', '1', 'all'] },
             description: 'Filtra pelo status (1 = ativos, 0 = inativos, all = todos). Padrão: 1.',
+          },
+          {
+            name: 'search',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Busca parcial por nome, razão social ou CNPJ (case-insensitive).',
+          },
+          {
+            name: 'isMatrix',
+            in: 'query',
+            schema: { type: 'string', enum: ['true', 'false'] },
+            description:
+              'Filtra por empresas matriz. Use true para trazer apenas empresas sem dados de matriz; false para trazer apenas filiais. Padrão: sem filtro.',
           },
         ],
         responses: {
@@ -799,6 +826,37 @@ const swaggerDefinition = {
         responses: {
           200: {
             description: 'Pessoa encontrada',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Pessoa' },
+              },
+            },
+          },
+          404: { description: 'Pessoa não encontrada' },
+        },
+      },
+      put: {
+        summary: 'Atualiza uma pessoa',
+        tags: ['Pessoas'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/PessoaPayload' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Pessoa atualizada',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/Pessoa' },

@@ -45,6 +45,12 @@ const normalizeBranch = (companyId, branchId) => {
   return branchId;
 };
 
+const sanitizePessoa = (pessoa) => {
+  if (!pessoa) return null;
+  const { passwordHash, __v, ...rest } = pessoa;
+  return rest;
+};
+
 exports.createPessoa = async (req, res, next) => {
   try {
     const { nome, cargo, telefone, email, password, companyId, branchId } = req.body;
@@ -148,12 +154,83 @@ exports.pessoa = async (req, res, next) => {
       return res.status(404).json({ message: 'Pessoa não encontrada' });
     }
 
-    const { passwordHash, __v, ...sanitizedPessoa } = pessoa;
-    return res.json(sanitizedPessoa);
+    return res.json(sanitizePessoa(pessoa));
   } catch (error) {
     next(error)
   }
 }
+
+exports.updatePessoa = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ message: 'ID da pessoa não identificados.' });
+    }
+
+    const { nome, cargo, telefone, email, password, companyId, branchId, status } = req.body;
+
+    const existingPessoa = await Pessoa.findOne({ _id: id, ...ACTIVE_STATUS_CLAUSE });
+    if (!existingPessoa) {
+      return res.status(404).json({ message: 'Pessoa não encontrada' });
+    }
+
+    const companyToUse = companyId || existingPessoa.company;
+    const branchToUse = normalizeBranch(companyToUse, branchId || existingPessoa.branch);
+
+    const [company, branch] = await Promise.all([
+      Company.findOne({ _id: companyToUse, ...ACTIVE_STATUS_CLAUSE }),
+      branchToUse
+        ? Company.findOne({ _id: branchToUse, ...ACTIVE_STATUS_CLAUSE })
+        : Promise.resolve(null),
+    ]);
+
+    if (!company) {
+      return res.status(404).json({ message: 'Empresa informada não encontrada.' });
+    }
+
+    if (branchToUse && !branch) {
+      return res.status(404).json({ message: 'Filial informada não encontrada.' });
+    }
+
+    const payload = {
+      nome,
+      cargo: cargo ?? existingPessoa.cargo ?? null,
+      telefone: telefone ?? existingPessoa.telefone ?? null,
+      email,
+      company: companyToUse,
+      branch: branchToUse,
+    };
+
+    if (status !== undefined) {
+      payload.status = resolveStatusFilter(status);
+    }
+
+    if (password) {
+      payload.passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    }
+
+    const pessoaAtualizada = await Pessoa.findByIdAndUpdate(id, payload, {
+      new: true,
+      runValidators: true,
+    })
+      .populate('company', 'name cnpj')
+      .populate('branch', 'name cnpj')
+      .lean();
+
+    if (!pessoaAtualizada) {
+      return res.status(404).json({ message: 'Pessoa não encontrada' });
+    }
+
+    return res.json(sanitizePessoa(pessoaAtualizada));
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'Já existe uma pessoa cadastrada para esse email/empresa/filial.',
+      });
+    }
+    return next(error);
+  }
+};
 
 exports.login = async (req, res, next) => {
   try {

@@ -43,8 +43,16 @@ const companySchema = new mongoose.Schema(
       },
     ],
     matrixCompany: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Company',
+      type: {
+        id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Company',
+        },
+        name: {
+          type: String,
+          trim: true,
+        },
+      },
       default: null,
     },
     status: {
@@ -57,7 +65,7 @@ const companySchema = new mongoose.Schema(
 );
 
 companySchema.virtual('isMatrix').get(function isMatrix() {
-  return !this.matrixCompany;
+  return !this.matrixCompany || !this.matrixCompany.id;
 });
 
 companySchema.set('toJSON', {

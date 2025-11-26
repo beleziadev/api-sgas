@@ -12,6 +12,11 @@ const addressSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    cep: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     complement: {
       type: String,
       trim: true,

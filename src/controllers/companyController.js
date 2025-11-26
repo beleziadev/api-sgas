@@ -43,6 +43,95 @@ const applyStatusFilter = (filter, value) => {
   filter.$and.push(clause);
 };
 
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const buildSearchClause = (search) => {
+  if (!search || typeof search !== 'string') return null;
+  const trimmed = search.trim();
+  if (!trimmed) return null;
+
+  const pattern = new RegExp(escapeRegex(trimmed), 'i');
+  return {
+    $or: [{ name: pattern }, { legalName: pattern }, { cnpj: pattern }],
+  };
+};
+
+const applySearchFilter = (filter, value) => {
+  const clause = buildSearchClause(value);
+  if (!clause) return;
+
+  if (!filter.$and) {
+    filter.$and = [];
+  }
+  filter.$and.push(clause);
+};
+
+const parseBooleanLike = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const normalized = String(value).toLowerCase();
+  if (['true', '1', 'yes', 'y'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'n'].includes(normalized)) return false;
+  return null;
+};
+
+const buildMatrixClause = (value) => {
+  const parsed = parseBooleanLike(value);
+  if (parsed === null) return null;
+
+  if (parsed) {
+    return {
+      $or: [
+        { matrixCompany: null },
+        { matrixCompany: { $exists: false } },
+        { 'matrixCompany.id': { $exists: false } },
+        { 'matrixCompany.id': null },
+      ],
+    };
+  }
+
+  return {
+    $and: [
+      { matrixCompany: { $exists: true } },
+      { matrixCompany: { $ne: null } },
+      { 'matrixCompany.id': { $exists: true } },
+      { 'matrixCompany.id': { $ne: null } },
+    ],
+  };
+};
+
+const applyMatrixFilter = (filter, value) => {
+  const clause = buildMatrixClause(value);
+  if (!clause) return;
+
+  if (!filter.$and) {
+    filter.$and = [];
+  }
+  filter.$and.push(clause);
+};
+
+const normalizeMatrixCompany = (matrixCompany) => {
+  if (!matrixCompany) return null;
+
+  if (typeof matrixCompany === 'string') {
+    const trimmed = matrixCompany.trim();
+    return trimmed ? { id: trimmed, name: null } : null;
+  }
+
+  if (typeof matrixCompany === 'object') {
+    const id = matrixCompany.id || matrixCompany._id || matrixCompany;
+    const name = matrixCompany.name || matrixCompany.legalName || null;
+
+    if (!id && !name) return null;
+
+    return {
+      id: id ? `${id}` : null,
+      name: name || null,
+    };
+  }
+
+  return null;
+};
+
 const normalizeCompanyPayload = (payload = {}) => {
   const {
     name,
@@ -69,15 +158,26 @@ const normalizeCompanyPayload = (payload = {}) => {
     activity,
     phones: sanitizedPhones,
     emails: sanitizedEmails,
-    matrixCompany: matrixCompany || null,
+    matrixCompany: normalizeMatrixCompany(matrixCompany),
     status: sanitizeStatusValue(status),
   };
 };
 
 const mapCompanyResponse = (company) => {
   if (!company) return null;
-  const { _id, __v, ...rest } = company;
-  return { ...rest, id: _id };
+  const { _id, __v, matrixCompany, ...rest } = company;
+
+  const normalizedMatrix =
+    matrixCompany && typeof matrixCompany === 'object'
+      ? {
+          id: matrixCompany.id ? `${matrixCompany.id}` : null,
+          name: matrixCompany.name || null,
+        }
+      : matrixCompany
+      ? { id: `${matrixCompany}`, name: null }
+      : null;
+
+  return { ...rest, id: _id, matrixCompany: normalizedMatrix };
 };
 
 exports.createCompany = async (req, res, next) => {
@@ -93,6 +193,8 @@ exports.listCompanies = async (req, res, next) => {
   try {
     const filter = {};
     applyStatusFilter(filter, req.query?.status);
+    applySearchFilter(filter, req.query?.search || req.query?.q);
+    applyMatrixFilter(filter, req.query?.isMatrix ?? req.query?.matrixOnly);
 
     const companies = await Company.find(filter).lean({ virtuals: true });
     return res.json(companies.map(mapCompanyResponse));
