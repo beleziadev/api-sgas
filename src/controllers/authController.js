@@ -45,6 +45,36 @@ const normalizeBranch = (companyId, branchId) => {
   return branchId;
 };
 
+const normalizeCompanyId = (input) => {
+  if (!input) return null;
+  if (typeof input === 'string') return input;
+  if (typeof input === 'object') return input.id || input._id || null;
+  return null;
+};
+
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const buildSearchClause = (search) => {
+  if (!search || typeof search !== 'string') return null;
+  const trimmed = search.trim();
+  if (!trimmed) return null;
+
+  const pattern = new RegExp(escapeRegex(trimmed), 'i');
+  return {
+    $or: [{ nome: pattern }, { email: pattern }, { cargo: pattern }, { telefone: pattern }],
+  };
+};
+
+const applySearchFilter = (filter, value) => {
+  const clause = buildSearchClause(value);
+  if (!clause) return;
+
+  if (!filter.$and) {
+    filter.$and = [];
+  }
+  filter.$and.push(clause);
+};
+
 const sanitizePessoa = (pessoa) => {
   if (!pessoa) return null;
   const { passwordHash, __v, ...rest } = pessoa;
@@ -53,24 +83,25 @@ const sanitizePessoa = (pessoa) => {
 
 exports.createPessoa = async (req, res, next) => {
   try {
-    const { nome, cargo, telefone, email, password, companyId, branchId } = req.body;
+    const { nome, cargo, telefone, email, password, companyId, branchId, company } = req.body;
+    const resolvedCompanyId = normalizeCompanyId(companyId || company);
 
-    if (!nome || !email || !password || !companyId) {
+    if (!nome || !email || !password || !resolvedCompanyId) {
       return res
         .status(400)
         .json({ message: 'Nome, email, senha e o ID da empresa são obrigatórios.' });
     }
 
-    const branchToUse = normalizeBranch(companyId, branchId);
+    const branchToUse = normalizeBranch(resolvedCompanyId, normalizeCompanyId(branchId));
 
-    const [company, branch] = await Promise.all([
-      Company.findOne({ _id: companyId, ...ACTIVE_STATUS_CLAUSE }),
+    const [companyDoc, branch] = await Promise.all([
+      Company.findOne({ _id: resolvedCompanyId, ...ACTIVE_STATUS_CLAUSE }),
       branchToUse
         ? Company.findOne({ _id: branchToUse, ...ACTIVE_STATUS_CLAUSE })
         : Promise.resolve(null),
     ]);
 
-    if (!company) {
+    if (!companyDoc) {
       return res.status(404).json({ message: 'Empresa informada não encontrada.' });
     }
 
@@ -86,7 +117,7 @@ exports.createPessoa = async (req, res, next) => {
       telefone: telefone || null,
       email,
       passwordHash,
-      company: companyId,
+      company: resolvedCompanyId,
       branch: branchToUse,
       status: ACTIVE_STATUS,
     });
@@ -106,15 +137,18 @@ exports.listPessoas = async (req, res, next) => {
   try {
     const filter = {};
 
-    if (req.query.companyId) {
-      filter.company = req.query.companyId;
+    const companyFilter = normalizeCompanyId(req.query.companyId || req.query.company);
+    if (companyFilter) {
+      filter.company = companyFilter;
     }
 
-    if (req.query.branchId) {
-      filter.branch = normalizeBranch(req.query.companyId, req.query.branchId);
+    const branchFilter = normalizeCompanyId(req.query.branchId || req.query.branch);
+    if (branchFilter) {
+      filter.branch = normalizeBranch(companyFilter, branchFilter);
     }
 
     applyStatusFilter(filter, req.query?.status);
+    applySearchFilter(filter, req.query?.search || req.query?.q);
 
     const pessoas = await Pessoa.find(filter)
       .populate('company', 'name cnpj')
@@ -167,24 +201,28 @@ exports.updatePessoa = async (req, res, next) => {
       return res.status(400).json({ message: 'ID da pessoa não identificados.' });
     }
 
-    const { nome, cargo, telefone, email, password, companyId, branchId, status } = req.body;
+    const { nome, cargo, telefone, email, password, companyId, branchId, status, company } =
+      req.body;
 
     const existingPessoa = await Pessoa.findOne({ _id: id, ...ACTIVE_STATUS_CLAUSE });
     if (!existingPessoa) {
       return res.status(404).json({ message: 'Pessoa não encontrada' });
     }
 
-    const companyToUse = companyId || existingPessoa.company;
-    const branchToUse = normalizeBranch(companyToUse, branchId || existingPessoa.branch);
+    const companyToUse = normalizeCompanyId(companyId || company || existingPessoa.company);
+    const branchToUse = normalizeBranch(
+      companyToUse,
+      normalizeCompanyId(branchId) || existingPessoa.branch
+    );
 
-    const [company, branch] = await Promise.all([
+    const [companyDoc, branch] = await Promise.all([
       Company.findOne({ _id: companyToUse, ...ACTIVE_STATUS_CLAUSE }),
       branchToUse
         ? Company.findOne({ _id: branchToUse, ...ACTIVE_STATUS_CLAUSE })
         : Promise.resolve(null),
     ]);
 
-    if (!company) {
+    if (!companyDoc) {
       return res.status(404).json({ message: 'Empresa informada não encontrada.' });
     }
 

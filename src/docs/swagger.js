@@ -148,13 +148,34 @@ const swaggerDefinition = {
         properties: {
           id: { type: 'string' },
           name: { type: 'string' },
-          technicalManager: { type: 'string' },
-          responsible: { type: 'string' },
+          technicalManager: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+            },
+          },
+          responsible: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+            },
+          },
           phone: { type: 'string' },
           email: { type: 'string' },
           address: { type: 'string' },
           sectorType: { type: 'string' },
-          manager: { type: 'string' },
+          manager: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string' },
+              nome: { type: 'string' },
+            },
+          },
           description: { type: 'string' },
           company: {
             type: 'object',
@@ -178,15 +199,43 @@ const swaggerDefinition = {
         required: ['name', 'companyId'],
         properties: {
           name: { type: 'string' },
-          technicalManager: { type: 'string' },
-          responsible: { type: 'string' },
+          technicalManager: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string' },
+              nome: { type: 'string' },
+            },
+          },
+          responsible: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string' },
+              nome: { type: 'string' },
+            },
+          },
           phone: { type: 'string' },
           email: { type: 'string', format: 'email' },
           address: { type: 'string' },
           sectorType: { type: 'string' },
-          manager: { type: 'string' },
+          manager: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string' },
+              nome: { type: 'string' },
+            },
+          },
           description: { type: 'string' },
-          companyId: { type: 'string', description: 'ID da empresa vinculada.' },
+          company: {
+            type: 'object',
+            description: 'Empresa vinculada ao setor.',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+            },
+          },
           status: {
             type: 'integer',
             enum: [0, 1],
@@ -770,6 +819,12 @@ const swaggerDefinition = {
             in: 'query',
             schema: { type: 'string', enum: ['0', '1', 'all'] },
             description: 'Filtra pelo status (padrão: 1).',
+          },
+          {
+            name: 'search',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Busca parcial por nome, email, cargo ou telefone (case-insensitive).',
           },
         ],
         responses: {

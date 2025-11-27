@@ -43,6 +43,42 @@ const applyStatusFilter = (filter, value) => {
   filter.$and.push(clause);
 };
 
+const normalizePersonRef = (ref) => {
+  if (!ref) return null;
+
+  if (typeof ref === 'string') {
+    const trimmed = ref.trim();
+    return trimmed ? { id: trimmed, name: null } : null;
+  }
+
+  if (typeof ref === 'object') {
+    const id = ref.id || ref._id || ref;
+    const name = ref.name || ref.nome || null;
+    if (!id && !name) return null;
+    return { id: id ? `${id}` : null, name };
+  }
+
+  return null;
+};
+
+const normalizeCompanyRef = (company) => {
+  if (!company) return null;
+
+  if (typeof company === 'string') {
+    const trimmed = company.trim();
+    return trimmed ? { id: trimmed, name: null } : null;
+  }
+
+  if (typeof company === 'object') {
+    const id = company.id || company._id || company.companyId || null;
+    const name = company.name || company.legalName || null;
+    if (!id && !name) return null;
+    return { id: id ? `${id}` : null, name };
+  }
+
+  return null;
+};
+
 const normalizeSectorPayload = (payload = {}) => {
   const {
     name,
@@ -54,22 +90,23 @@ const normalizeSectorPayload = (payload = {}) => {
     sectorType,
     manager,
     description,
-    companyId,
     company,
     status,
   } = payload;
 
+  const companyRef = normalizeCompanyRef(company);
+
   const normalized = {
     name,
-    technicalManager,
-    responsible,
+    technicalManager: normalizePersonRef(technicalManager),
+    responsible: normalizePersonRef(responsible),
     phone,
     email,
     address,
     sectorType,
-    manager,
+    manager: normalizePersonRef(manager),
     description,
-    company: companyId || company,
+    company: companyRef ? companyRef.id : null,
     status: sanitizeStatusValue(status),
   };
 
@@ -78,7 +115,10 @@ const normalizeSectorPayload = (payload = {}) => {
   );
 };
 
-const ensureCompanyExists = async (companyId, res) => {
+const ensureCompanyExists = async (companyInput, res) => {
+  const companyId =
+    typeof companyInput === 'object' && companyInput !== null ? companyInput.id || companyInput._id : companyInput;
+
   if (!companyId) {
     res.status(400).json({ message: 'O ID da empresa é obrigatório.' });
     return null;
@@ -120,9 +160,7 @@ exports.listSectors = async (req, res, next) => {
 
     applyStatusFilter(filter, req.query?.status);
 
-    const sectors = await Sector.find(filter)
-      .populate('company', 'name cnpj')
-      .exec();
+    const sectors = await Sector.find(filter).populate('company', 'name cnpj').exec();
 
     return res.json(sectors);
   } catch (error) {

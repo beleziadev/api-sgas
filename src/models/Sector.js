@@ -8,12 +8,18 @@ const sectorSchema = new mongoose.Schema(
       trim: true,
     },
     technicalManager: {
-      type: String,
-      trim: true,
+      type: {
+        id: { type: mongoose.Schema.Types.ObjectId, ref: 'Pessoa' },
+        name: { type: String, trim: true },
+      },
+      default: null,
     },
     responsible: {
-      type: String,
-      trim: true,
+      type: {
+        id: { type: mongoose.Schema.Types.ObjectId, ref: 'Pessoa' },
+        name: { type: String, trim: true },
+      },
+      default: null,
     },
     phone: {
       type: String,
@@ -33,8 +39,11 @@ const sectorSchema = new mongoose.Schema(
       trim: true,
     },
     manager: {
-      type: String,
-      trim: true,
+      type: {
+        id: { type: mongoose.Schema.Types.ObjectId, ref: 'Pessoa' },
+        name: { type: String, trim: true },
+      },
+      default: null,
     },
     description: {
       type: String,
@@ -58,6 +67,16 @@ sectorSchema.set('toJSON', {
   versionKey: false,
   transform: (_doc, ret) => {
     ret.id = ret._id;
+    const normalizeRef = (ref) =>
+      ref
+        ? {
+            id: ref.id ? `${ref.id}` : null,
+            nome: ref.nome || ref.name || null,
+          }
+        : null;
+    ret.manager = normalizeRef(ret.manager);
+    ret.responsible = normalizeRef(ret.responsible);
+    ret.technicalManager = normalizeRef(ret.technicalManager);
     delete ret._id;
   },
 });

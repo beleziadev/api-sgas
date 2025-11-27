@@ -54,6 +54,14 @@ const normalizePayload = (payload = {}) => {
   const { street, number, cep, complement, city, state, district, companyId, company, status } =
     payload;
 
+  const normalizeCompanyId = () => {
+    if (companyId) return companyId;
+    if (!company) return null;
+    if (typeof company === 'string') return company;
+    if (typeof company === 'object') return company.id || company._id || null;
+    return null;
+  };
+
   const normalized = {
     street,
     number,
@@ -62,7 +70,7 @@ const normalizePayload = (payload = {}) => {
     city,
     state,
     district,
-    company: companyId || company,
+    company: normalizeCompanyId(),
     status: status === undefined || status === null ? undefined : Number(status),
   };
 
